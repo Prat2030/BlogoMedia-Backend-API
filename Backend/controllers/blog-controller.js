@@ -61,3 +61,17 @@ export const getById = async (req, res, next) => {
     }
     return res.status(200).json({blog});
 }
+
+export const deleteBlog = async (req, res, next) => {
+    const id = req.params.id;
+    let blog;
+    try {
+        blog = await Blog.findByIdAndDelete(id);
+    } catch (err) {
+        console.log(err);
+    }
+    if(!blog) {
+        return res.status(404).json({message: "No blog found"});
+    }
+    return res.status(200).json({message: "Blog deleted successfully"});
+}

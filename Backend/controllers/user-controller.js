@@ -29,7 +29,8 @@ export const signup = async (req, res, next) => {
     const newUser = new User({
         name,
         email,
-        password: hashedPassword
+        password: hashedPassword,
+        blogs: [],
     });
 
     try {
