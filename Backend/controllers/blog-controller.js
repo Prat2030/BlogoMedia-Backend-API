@@ -1,6 +1,10 @@
 import Blog from "../model/Blog.js";
 import User from "../model/User.js";
 
+import nodemailer from "nodemailer";
+import emailConfig from "../path/to/emailConfig.js";
+
+
 export const getAllBlogs = async (req, res, next) => {
     let blogs;
     try {
@@ -41,6 +45,17 @@ export const createBlog = async (req, res, next) => {
         existingUser.blogs.push(newBlog);
         await existingUser.save({session});
         await session.commitTransaction();
+
+         // Send email notification to all users when a new blog is created
+        const allUsers = await User.find({}, "email");
+        const to = allUsers.map((user) => user.email);
+        const subject = "A new blog has been posted!";
+        const text = `Check out the new blog "${newBlog.title}" by ${existingUser.name}`;
+        await sendEmailNotification(to, subject, text);
+
+        return res.status(201).json({ newBlog });
+
+
     } catch (err) {
         console.log(err);
         return res.status(500).json({message: err});
@@ -113,6 +128,24 @@ export const getByUserId = async (req, res, next) => {
     return res.status(200).json({blogs:userBlogs});
 }
 
+const transporter = nodemailer.createTransport(emailConfig);
+
+export const sendEmailNotification = async (to, subject, text) => {
+  const mailOptions = {
+    from: "your_email_username",
+    to,
+    subject,
+    text,
+  };
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log("Email sent:", mailOptions);
+  } catch (err) {
+    console.log("Email sending failed:", err);
+  }
+};
+
 
 export const likeBlog = async (req, res, next) => {
     const blogId = req.params.id;
@@ -131,6 +164,12 @@ export const likeBlog = async (req, res, next) => {
       } else {
         // User hasn't liked the blog, add the like
         blog.likes.push(userId);
+  
+        // Send email notification to the blog owner when someone likes their blog
+        const to = blog.user.email;
+        const subject = "Your blog has a new like!";
+        const text = `${userId} liked your blog "${blog.title}"`;
+        await sendEmailNotification(to, subject, text);
       }
   
       await blog.save();
@@ -153,6 +192,13 @@ export const likeBlog = async (req, res, next) => {
       }
   
       blog.comments.push({ userId, comment });
+  
+      // Send email notification to the blog owner when someone comments on their blog
+      const to = blog.user.email;
+      const subject = "Your blog has a new comment!";
+      const text = `${userId} commented on your blog "${blog.title}": "${comment}"`;
+      await sendEmailNotification(to, subject, text);
+  
       await blog.save();
       return res.status(200).json({ blog });
     } catch (err) {
@@ -160,4 +206,7 @@ export const likeBlog = async (req, res, next) => {
       return res.status(500).json({ message: "Unable to add comment to the blog" });
     }
   };
+
+
+
   
