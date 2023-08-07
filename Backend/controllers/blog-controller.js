@@ -112,3 +112,52 @@ export const getByUserId = async (req, res, next) => {
     }
     return res.status(200).json({blogs:userBlogs});
 }
+
+
+export const likeBlog = async (req, res, next) => {
+    const blogId = req.params.id;
+    let blog;
+    try {
+      blog = await Blog.findById(blogId);
+      if (!blog) {
+        return res.status(404).json({ message: "Blog not found" });
+      }
+  
+      // Check if the user has already liked the blog
+      const { userId } = req.body;
+      if (blog.likes.includes(userId)) {
+        // User already liked the blog, remove the like
+        blog.likes.pull(userId);
+      } else {
+        // User hasn't liked the blog, add the like
+        blog.likes.push(userId);
+      }
+  
+      await blog.save();
+      return res.status(200).json({ blog });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Unable to like the blog" });
+    }
+  };
+  
+  export const commentBlog = async (req, res, next) => {
+    const blogId = req.params.id;
+    const { userId, comment } = req.body;
+  
+    let blog;
+    try {
+      blog = await Blog.findById(blogId);
+      if (!blog) {
+        return res.status(404).json({ message: "Blog not found" });
+      }
+  
+      blog.comments.push({ userId, comment });
+      await blog.save();
+      return res.status(200).json({ blog });
+    } catch (err) {
+      console.log(err);
+      return res.status(500).json({ message: "Unable to add comment to the blog" });
+    }
+  };
+  
